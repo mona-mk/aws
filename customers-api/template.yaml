@@ -1,0 +1,62 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  customers-api
+
+Globals:
+  Function:
+    Runtime: python3.9
+    Architectures:
+      - x86_64
+    Environment:
+      Variables:
+        CUSTOMERS_TABLE: !Ref CustomersTable
+
+Resources:
+  CustomersTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      PrimaryKey:
+        Name: id
+        Type: Number
+  ReadCustomerFuction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: customers_api/
+      Handler: read.lambda_handler
+      Events:
+        ReadCustomerEvent:
+          Type: Api
+          Properties:
+            Path: /customers/{id}
+            Method: GET
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref CustomersTable
+  CreateCustomerFuction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: customers_api/
+      Handler: create.lambda_handler
+      Events:
+        CreateCustomersEvent:
+          Type: Api
+          Properties:
+            Path: /customers
+            Method: POST
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref CustomersTable
+
+# allow some outputs to be printed at the end of deployment dynamically
+# useful for giving info to developers
+Outputs:
+  CreateCustomerAPI: # custom key
+    Description: "API Gateway endpoint url for creating customers"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Stage/customers"
+  CreateCustomerFunction:
+    Description: "Lambda Arn"
+    Value: !GetAtt CreateCustomerFuction.Arn
+  CreateCustomerFunctionIAMRole:
+    Description: "Lambda IAM role"
+    Value: !GetAtt CreateCustomerFuctionRole.Arn
